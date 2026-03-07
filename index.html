@@ -98,8 +98,11 @@ input[type="file"]::file-selector-button:hover{background:rgba(0,229,255,.25);}
 .queue-item.done{border-color:var(--success);}
 .queue-item.failed{border-color:var(--error);}
 .q-icon{font-size:16px;flex-shrink:0;}
+.q-name-wrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow:hidden;}
 .q-name{font-family:'Space Mono',monospace;font-size:12px;color:var(--text);
-  flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.q-folder{font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .q-size{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0;}
 .q-status{font-family:'Space Mono',monospace;font-size:11px;flex-shrink:0;min-width:80px;text-align:right;}
 .q-status.waiting{color:var(--muted);}
@@ -431,12 +434,14 @@ function loadPickerAPI(callback) {
 function openPicker() {
   if (!accessToken) { setStatus('Please sign in first.', 'err'); return; }
   loadPickerAPI(function() {
-    var view = new google.picker.View(google.picker.ViewId.DOCS);
-    view.setMimeTypes('application/zip,application/x-zip-compressed');
+    var view = new google.picker.DocsView()
+      .setIncludeFolders(true)
+      .setSelectFolderEnabled(false)
+      .setMimeTypes('application/zip,application/x-zip-compressed,application/vnd.google-apps.folder');
     var picker = new google.picker.PickerBuilder()
       .addView(view)
       .setOAuthToken(accessToken)
-      .setTitle('Select SCORM .zip files')
+      .setTitle('Browse folders and select SCORM .zip files')
       .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
       .setCallback(pickerCallback)
       .build();
@@ -447,19 +452,35 @@ function openPicker() {
 function pickerCallback(data) {
   if (data.action !== google.picker.Action.PICKED) return;
   var docs = data.docs || [];
-  docs.forEach(function(doc) {
+  var promises = docs.map(function(doc) {
     var exists = fileQueue.some(function(f){ return f.driveId === doc.id; });
-    if (!exists) {
-      fileQueue.push({
-        name: doc.name,
-        size: doc.sizeBytes || 0,
-        source: 'drive',
-        driveId: doc.id
+    if (exists) return Promise.resolve();
+    return fetch('https://www.googleapis.com/drive/v3/files/' + doc.id + '?fields=id,name,size,parents', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(meta) {
+      var parentId = meta.parents && meta.parents[0];
+      if (!parentId) {
+        fileQueue.push({ name: doc.name, size: doc.sizeBytes || 0, source: 'drive', driveId: doc.id, folder: 'My Drive' });
+        return;
+      }
+      return fetch('https://www.googleapis.com/drive/v3/files/' + parentId + '?fields=name', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(folder) {
+        fileQueue.push({ name: doc.name, size: doc.sizeBytes || 0, source: 'drive', driveId: doc.id, folder: folder.name || 'My Drive' });
       });
-    }
+    })
+    .catch(function() {
+      fileQueue.push({ name: doc.name, size: doc.sizeBytes || 0, source: 'drive', driveId: doc.id, folder: '' });
+    });
   });
-  renderQueue();
-  checkReady();
+  Promise.all(promises).then(function() {
+    renderQueue();
+    checkReady();
+  });
 }
 
 function openFolderPicker() {
@@ -546,9 +567,13 @@ function renderQueue() {
     item.id = 'qitem-' + idx;
     var kb   = f.size ? (f.size / 1024).toFixed(1) + ' KB' : '—';
     var icon = f.source === 'drive' ? '☁️' : '📄';
+    var folderTag = (f.source === 'drive' && f.folder) ? '<span class="q-folder">📁 ' + f.folder + '</span>' : '';
     item.innerHTML =
       '<span class="q-icon">' + icon + '</span>' +
-      '<span class="q-name" title="' + f.name + '">' + f.name + '</span>' +
+      '<span class="q-name-wrap">' +
+        '<span class="q-name" title="' + f.name + '">' + f.name + '</span>' +
+        folderTag +
+      '</span>' +
       '<span class="q-size">' + kb + '</span>' +
       '<span class="q-status waiting" id="qstatus-' + idx + '">waiting</span>' +
       '<button class="q-remove" onclick="removeFile(' + idx + ')">✕</button>';
