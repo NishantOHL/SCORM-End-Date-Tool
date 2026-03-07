@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SCORM Expiry Injector — Google Drive</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:#0a0a0f; --surface:#12121a; --card:#1a1a26; --border:#2a2a3e;
+  --accent:#00e5ff; --accent2:#7c3aed; --accent3:#f59e0b;
+  --text:#e8e8f0; --muted:#6b6b8a; --success:#10b981; --error:#ef4444;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px;
+  background-image:radial-gradient(ellipse at 20% 10%,rgba(0,229,255,.06) 0%,transparent 50%),
+  radial-gradient(ellipse at 80% 80%,rgba(124,58,237,.06) 0%,transparent 50%);}
+.header{text-align:center;margin-bottom:32px;}
+.badge{display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;
+  color:var(--accent);text-transform:uppercase;border:1px solid rgba(0,229,255,.3);
+  padding:4px 14px;border-radius:20px;margin-bottom:14px;background:rgba(0,229,255,.05);}
+h1{font-family:'Space Mono',monospace;font-size:clamp(20px,4vw,32px);font-weight:700;letter-spacing:-1px;}
+h1 span{color:var(--accent);}
+.subtitle{margin-top:8px;color:var(--muted);font-size:14px;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;
+  width:100%;max-width:700px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent),var(--accent2));opacity:.7;}
+
+/* ── Section labels ── */
+.section-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:block;}
+
+/* ── Auth bar ── */
+.auth-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:20px;}
+.auth-info{display:flex;align-items:center;gap:10px;}
+.auth-avatar{width:32px;height:32px;border-radius:50%;background:var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:14px;overflow:hidden;}
+.auth-avatar img{width:100%;height:100%;object-fit:cover;}
+.auth-name{font-size:14px;font-weight:500;}
+.auth-email{font-size:12px;color:var(--muted);font-family:'Space Mono',monospace;}
+.auth-btn{padding:8px 18px;border-radius:7px;border:none;cursor:pointer;
+  font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;font-weight:700;
+  text-transform:uppercase;transition:all .2s;}
+.btn-signin{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;}
+.btn-signin:hover{opacity:.85;}
+.btn-signout{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--error);}
+.btn-signout:hover{background:rgba(239,68,68,.2);}
+
+/* ── Source tabs ── */
+.source-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.tab{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface);cursor:pointer;text-align:center;font-size:13px;
+  transition:all .2s;user-select:none;}
+.tab.active{border-color:var(--accent);background:rgba(0,229,255,.06);color:var(--accent);}
+.tab-icon{font-size:18px;display:block;margin-bottom:4px;}
+
+/* ── Upload area (local) ── */
+.upload-area{background:var(--surface);border:2px dashed var(--border);border-radius:12px;
+  padding:28px 20px;text-align:center;transition:border-color .2s,background .2s;}
+.upload-area.has-files{border-color:var(--success);border-style:solid;background:rgba(16,185,129,.03);}
+.upload-area.drag-over{border-color:var(--accent);background:rgba(0,229,255,.04);}
+.upload-icon{font-size:32px;display:block;margin-bottom:8px;}
+.upload-hint{display:block;font-size:13px;color:var(--muted);margin-bottom:14px;}
+input[type="file"]{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);
+  background:transparent;border:none;cursor:pointer;}
+input[type="file"]::file-selector-button{background:rgba(0,229,255,.12);
+  border:1px solid rgba(0,229,255,.5);color:var(--accent);padding:8px 18px;border-radius:6px;
+  cursor:pointer;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;margin-right:10px;}
+input[type="file"]::file-selector-button:hover{background:rgba(0,229,255,.25);}
+
+/* ── Drive picker panel ── */
+.drive-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;}
+.drive-panel p{color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.6;}
+.picker-btn{padding:10px 24px;background:linear-gradient(135deg,#1a73e8,#0d47a1);
+  border:none;border-radius:8px;color:#fff;cursor:pointer;
+  font-family:'Space Mono',monospace;font-size:12px;letter-spacing:1px;font-weight:700;
+  transition:all .2s;}
+.picker-btn:hover:not(:disabled){opacity:.85;transform:translateY(-1px);}
+.picker-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ── File queue ── */
+.queue-wrap{margin-top:16px;display:none;}
+.queue-wrap.show{display:block;}
+.queue-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.queue-title{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);}
+.clear-btn{font-family:'Space Mono',monospace;font-size:11px;color:var(--error);
+  background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+.queue-list{display:flex;flex-direction:column;gap:6px;}
+.queue-item{display:flex;align-items:center;gap:10px;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:10px 14px;transition:border-color .2s;}
+.queue-item.processing{border-color:var(--accent);}
+.queue-item.done{border-color:var(--success);}
+.queue-item.failed{border-color:var(--error);}
+.q-icon{font-size:16px;flex-shrink:0;}
+.q-name{font-family:'Space Mono',monospace;font-size:12px;color:var(--text);
+  flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.q-size{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);flex-shrink:0;}
+.q-status{font-family:'Space Mono',monospace;font-size:11px;flex-shrink:0;min-width:80px;text-align:right;}
+.q-status.waiting{color:var(--muted);}
+.q-status.processing{color:var(--accent);}
+.q-status.done{color:var(--success);}
+.q-status.failed{color:var(--error);}
+.q-remove{background:none;border:none;color:var(--muted);cursor:pointer;
+  font-size:14px;flex-shrink:0;transition:color .2s;padding:0 2px;}
+.q-remove:hover{color:var(--error);}
+
+/* ── Fields ── */
+.field-group{margin-top:20px;}
+.field-label{display:block;font-size:11px;font-family:'Space Mono',monospace;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+input[type="date"],input[type="text"]{width:100%;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);
+  font-family:'Space Mono',monospace;font-size:14px;outline:none;
+  transition:border-color .2s;color-scheme:dark;}
+input[type="date"]:focus,input[type="text"]:focus{border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(0,229,255,.08);}
+
+/* ── Options ── */
+.options-row{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;}
+.chip{display:flex;align-items:center;gap:8px;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:9px 13px;cursor:pointer;
+  font-size:13px;transition:all .2s;user-select:none;flex:1;min-width:140px;}
+.chip.on{border-color:var(--accent);background:rgba(0,229,255,.05);color:var(--accent);}
+.chip-dot{width:15px;height:15px;border-radius:4px;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;transition:all .2s;}
+.chip.on .chip-dot{background:var(--accent);border-color:var(--accent);color:#000;}
+.msg-field{margin-top:16px;display:none;}
+.msg-field.show{display:block;}
+
+/* ── Output destination ── */
+.dest-row{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;}
+.dest-chip{display:flex;align-items:center;gap:8px;background:var(--surface);
+  border:1px solid var(--border);border-radius:8px;padding:9px 13px;cursor:pointer;
+  font-size:13px;transition:all .2s;user-select:none;flex:1;min-width:140px;}
+.dest-chip.on{border-color:var(--accent2);background:rgba(124,58,237,.07);color:#a78bfa;}
+.dest-chip .chip-dot{width:15px;height:15px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;transition:all .2s;}
+.dest-chip.on .chip-dot{background:#a78bfa;border-color:#a78bfa;color:#000;}
+
+/* ── Drive folder selector ── */
+.folder-row{margin-top:12px;display:none;align-items:center;gap:10px;flex-wrap:wrap;}
+.folder-row.show{display:flex;}
+.folder-display{flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;
+  color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.folder-display.selected{color:var(--text);}
+.folder-pick-btn{padding:9px 16px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.3);
+  color:var(--accent);border-radius:8px;cursor:pointer;font-family:'Space Mono',monospace;
+  font-size:11px;letter-spacing:1px;white-space:nowrap;transition:background .2s;}
+.folder-pick-btn:hover{background:rgba(0,229,255,.2);}
+
+/* ── Progress ── */
+.progress-wrap{margin-top:18px;display:none;}
+.progress-wrap.show{display:block;}
+.progress-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);
+  margin-bottom:6px;display:flex;justify-content:space-between;}
+.progress-bar-bg{background:var(--surface);border:1px solid var(--border);border-radius:100px;height:6px;overflow:hidden;}
+.progress-bar-fill{height:100%;border-radius:100px;width:0%;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .3s ease;}
+
+/* ── Buttons ── */
+.gen-btn{margin-top:22px;width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border:none;border-radius:10px;color:#fff;font-family:'Space Mono',monospace;
+  font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;
+  transition:all .3s;text-transform:uppercase;}
+.gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 30px rgba(0,229,255,.2);}
+.gen-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+
+/* ── Status ── */
+.status{margin-top:16px;padding:12px 16px;border-radius:10px;
+  font-family:'Space Mono',monospace;font-size:12px;line-height:1.7;
+  display:none;white-space:pre-wrap;}
+.status.show{display:block;}
+.status.info{background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);color:var(--accent);}
+.status.ok{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);color:var(--success);}
+.status.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--error);}
+
+.divider{height:1px;background:var(--border);margin:22px 0;}
+.footer{margin-top:28px;text-align:center;font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;}
+.footer span{color:var(--accent);}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">SCORM 1.2 · Drive + Batch</div>
+  <h1>SCORM <span>Expiry</span> Injector</h1>
+  <p class="subtitle">Local files or Google Drive · Set expiry · Download or save back to Drive</p>
+</div>
+
+<div class="card">
+
+  <!-- AUTH BAR -->
+  <div class="auth-bar" id="authBar">
+    <div class="auth-info" id="authInfo">
+      <div class="auth-avatar" id="authAvatar">👤</div>
+      <div>
+        <div class="auth-name" id="authName">Not signed in</div>
+        <div class="auth-email" id="authEmail">Sign in to use Google Drive</div>
+      </div>
+    </div>
+    <button class="auth-btn btn-signin" id="authBtn" onclick="handleAuth()">Sign in with Google</button>
+  </div>
+
+  <!-- SOURCE TABS -->
+  <span class="section-label">Step 1 — Select source files</span>
+  <div class="source-tabs">
+    <div class="tab active" id="tabLocal" onclick="switchTab('local')">
+      <span class="tab-icon">💻</span>Local Computer
+    </div>
+    <div class="tab" id="tabDrive" onclick="switchTab('drive')">
+      <span class="tab-icon">☁️</span>Google Drive
+    </div>
+  </div>
+
+  <!-- LOCAL UPLOAD -->
+  <div id="panelLocal">
+    <div class="upload-area" id="uploadArea">
+      <span class="upload-icon">📦</span>
+      <span class="upload-hint">Select one or more SCORM .zip packages</span>
+      <input type="file" id="fileInput" accept=".zip" multiple onchange="handleLocalFiles(this)" />
+    </div>
+  </div>
+
+  <!-- DRIVE PANEL -->
+  <div id="panelDrive" style="display:none;">
+    <div class="drive-panel">
+      <p>Sign in with Google above, then click the button below to open the Google Drive file picker and select your SCORM .zip files.</p>
+      <button class="picker-btn" id="pickerBtn" onclick="openPicker()" disabled>
+        📂 &nbsp;Open Google Drive Picker
+      </button>
+    </div>
+  </div>
+
+  <!-- FILE QUEUE (shared) -->
+  <div class="queue-wrap" id="queueWrap">
+    <div class="queue-header">
+      <span class="queue-title" id="queueTitle">0 files queued</span>
+      <button class="clear-btn" onclick="clearAll()">Clear all</button>
+    </div>
+    <div class="queue-list" id="queueList"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- DATE -->
+  <span class="section-label">Step 2 — Set expiry date</span>
+  <input type="date" id="endDate" onchange="checkReady()" />
+
+  <!-- OPTIONS -->
+  <div class="options-row">
+    <div class="chip" id="chipMsg" onclick="toggleMsg()">
+      <span class="chip-dot" id="dotMsg"></span>Show expiry message
+    </div>
+    <div class="chip on" id="chipBlock" onclick="toggleBlock()">
+      <span class="chip-dot" id="dotBlock">✓</span>Block SCORM API calls
+    </div>
+  </div>
+  <div class="msg-field" id="msgField">
+    <span class="field-label" style="margin-top:4px;">Custom expiry message</span>
+    <input type="text" id="expiryMsg" value="This course has expired. Please contact your administrator." />
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- OUTPUT DESTINATION -->
+  <span class="section-label">Step 3 — Choose where to save</span>
+  <div class="dest-row">
+    <div class="dest-chip on" id="destLocal" onclick="setDest('local')">
+      <span class="chip-dot" id="dotDestLocal">✓</span>💻 &nbsp;Download to computer
+    </div>
+    <div class="dest-chip" id="destDrive" onclick="setDest('drive')">
+      <span class="chip-dot" id="dotDestDrive"></span>☁️ &nbsp;Save to Google Drive
+    </div>
+  </div>
+
+  <!-- DRIVE FOLDER SELECTOR -->
+  <div class="folder-row" id="folderRow">
+    <div class="folder-display" id="folderDisplay">No folder selected — will save to Drive root</div>
+    <button class="folder-pick-btn" onclick="openFolderPicker()">📁 Choose folder</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label">
+      <span id="progressLabel">Processing...</span>
+      <span id="progressCount">0 / 0</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status" id="statusBox"></div>
+
+  <!-- GENERATE -->
+  <button class="gen-btn" id="genBtn" disabled onclick="generate()">⚙ Process &amp; Save All Files</button>
+
+</div>
+
+<div class="footer">Expiry injected into <span>user.js</span> · Obfuscated with eval/base64 · Google Drive API v3</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+var CLIENT_ID   = '620787797788-se4mkgbsmondqn9unjt3pdmvaer2q75s.apps.googleusercontent.com';
+var SCOPES      = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
+var PICKER_KEY  = ''; // Not needed when using OAuth token directly
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var accessToken    = null;
+var userProfile    = null;
+var fileQueue      = []; // {name, size, source:'local'|'drive', file?:File, driveId?:string}
+var doBlock        = true;
+var doMsg          = false;
+var destMode       = 'local'; // 'local' | 'drive'
+var driveFolder    = null;    // {id, name} or null = root
+var activeTab      = 'local';
+var isRunning      = false;
+var tokenClient    = null;
+
+// ── Google Auth ───────────────────────────────────────────────────────────────
+window.addEventListener('load', function() {
+  if (typeof google === 'undefined') {
+    setTimeout(initGoogleAuth, 1500);
+  } else {
+    initGoogleAuth();
+  }
+});
+
+function initGoogleAuth() {
+  if (typeof google === 'undefined' || !google.accounts) {
+    setStatus('Google auth library failed to load. Check your internet connection.', 'err');
+    return;
+  }
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: function(resp) {
+      if (resp.error) {
+        setStatus('Sign-in failed: ' + resp.error, 'err');
+        return;
+      }
+      accessToken = resp.access_token;
+      fetchUserProfile();
+    }
+  });
+}
+
+function handleAuth() {
+  if (accessToken) {
+    signOut();
+  } else {
+    if (!tokenClient) { initGoogleAuth(); }
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+}
+
+function fetchUserProfile() {
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    userProfile = data;
+    updateAuthUI(true);
+    document.getElementById('pickerBtn').disabled = false;
+    checkReady();
+  })
+  .catch(function() {
+    updateAuthUI(true);
+    document.getElementById('pickerBtn').disabled = false;
+  });
+}
+
+function updateAuthUI(signedIn) {
+  var btn    = document.getElementById('authBtn');
+  var name   = document.getElementById('authName');
+  var email  = document.getElementById('authEmail');
+  var avatar = document.getElementById('authAvatar');
+  if (signedIn && userProfile) {
+    name.textContent  = userProfile.name || 'Google User';
+    email.textContent = userProfile.email || '';
+    if (userProfile.picture) {
+      avatar.innerHTML = '<img src="' + userProfile.picture + '" />';
+    } else {
+      avatar.textContent = '👤';
+    }
+    btn.textContent = 'Sign out';
+    btn.className   = 'auth-btn btn-signout';
+  } else {
+    name.textContent  = 'Not signed in';
+    email.textContent = 'Sign in to use Google Drive';
+    avatar.textContent = '👤';
+    btn.textContent   = 'Sign in with Google';
+    btn.className     = 'auth-btn btn-signin';
+    document.getElementById('pickerBtn').disabled = true;
+  }
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  userProfile = null;
+  updateAuthUI(false);
+  // Remove drive files from queue
+  fileQueue = fileQueue.filter(function(f){ return f.source === 'local'; });
+  renderQueue();
+  checkReady();
+}
+
+// ── Google Picker ─────────────────────────────────────────────────────────────
+function loadPickerAPI(callback) {
+  if (window.google && window.google.picker) { callback(); return; }
+  var script = document.createElement('script');
+  script.src = 'https://apis.google.com/js/api.js';
+  script.onload = function() {
+    gapi.load('picker', callback);
+  };
+  document.head.appendChild(script);
+}
+
+function openPicker() {
+  if (!accessToken) { setStatus('Please sign in first.', 'err'); return; }
+  loadPickerAPI(function() {
+    var view = new google.picker.View(google.picker.ViewId.DOCS);
+    view.setMimeTypes('application/zip,application/x-zip-compressed');
+    var picker = new google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(accessToken)
+      .setTitle('Select SCORM .zip files')
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .setCallback(pickerCallback)
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+function pickerCallback(data) {
+  if (data.action !== google.picker.Action.PICKED) return;
+  var docs = data.docs || [];
+  docs.forEach(function(doc) {
+    var exists = fileQueue.some(function(f){ return f.driveId === doc.id; });
+    if (!exists) {
+      fileQueue.push({
+        name: doc.name,
+        size: doc.sizeBytes || 0,
+        source: 'drive',
+        driveId: doc.id
+      });
+    }
+  });
+  renderQueue();
+  checkReady();
+}
+
+function openFolderPicker() {
+  if (!accessToken) { setStatus('Please sign in first.', 'err'); return; }
+  loadPickerAPI(function() {
+    var view = new google.picker.DocsView(google.picker.ViewId.FOLDERS);
+    view.setSelectFolderEnabled(true);
+    view.setMimeTypes('application/vnd.google-apps.folder');
+    var picker = new google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(accessToken)
+      .setTitle('Select destination folder in Google Drive')
+      .setCallback(folderCallback)
+      .build();
+    picker.setVisible(true);
+  });
+}
+
+function folderCallback(data) {
+  if (data.action !== google.picker.Action.PICKED) return;
+  var doc = data.docs && data.docs[0];
+  if (!doc) return;
+  driveFolder = { id: doc.id, name: doc.name };
+  var disp = document.getElementById('folderDisplay');
+  disp.textContent = '📁 ' + doc.name;
+  disp.classList.add('selected');
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  document.getElementById('tabLocal').classList.toggle('active', tab === 'local');
+  document.getElementById('tabDrive').classList.toggle('active', tab === 'drive');
+  document.getElementById('panelLocal').style.display = tab === 'local' ? '' : 'none';
+  document.getElementById('panelDrive').style.display = tab === 'drive' ? '' : 'none';
+}
+
+// ── Local file handling ───────────────────────────────────────────────────────
+function handleLocalFiles(input) {
+  var files = input.files;
+  if (!files || !files.length) return;
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    if (!f.name.toLowerCase().endsWith('.zip')) continue;
+    var exists = fileQueue.some(function(q){ return q.name === f.name && q.source === 'local'; });
+    if (!exists) fileQueue.push({ name: f.name, size: f.size, source: 'local', file: f });
+  }
+  renderQueue();
+  checkReady();
+}
+
+// ── Queue management ──────────────────────────────────────────────────────────
+function removeFile(idx) {
+  fileQueue.splice(idx, 1);
+  renderQueue();
+  checkReady();
+}
+
+function clearAll() {
+  fileQueue = [];
+  document.getElementById('fileInput').value = '';
+  document.getElementById('uploadArea').classList.remove('has-files');
+  renderQueue();
+  checkReady();
+}
+
+function renderQueue() {
+  var list  = document.getElementById('queueList');
+  var wrap  = document.getElementById('queueWrap');
+  var title = document.getElementById('queueTitle');
+  var area  = document.getElementById('uploadArea');
+  if (!fileQueue.length) {
+    wrap.classList.remove('show');
+    area.classList.remove('has-files');
+    return;
+  }
+  wrap.classList.add('show');
+  area.classList.add('has-files');
+  title.textContent = fileQueue.length + ' file' + (fileQueue.length !== 1 ? 's' : '') + ' queued';
+  list.innerHTML = '';
+  fileQueue.forEach(function(f, idx) {
+    var item = document.createElement('div');
+    item.className = 'queue-item';
+    item.id = 'qitem-' + idx;
+    var kb   = f.size ? (f.size / 1024).toFixed(1) + ' KB' : '—';
+    var icon = f.source === 'drive' ? '☁️' : '📄';
+    item.innerHTML =
+      '<span class="q-icon">' + icon + '</span>' +
+      '<span class="q-name" title="' + f.name + '">' + f.name + '</span>' +
+      '<span class="q-size">' + kb + '</span>' +
+      '<span class="q-status waiting" id="qstatus-' + idx + '">waiting</span>' +
+      '<button class="q-remove" onclick="removeFile(' + idx + ')">✕</button>';
+    list.appendChild(item);
+  });
+}
+
+function setItemStatus(idx, state, label) {
+  var item = document.getElementById('qitem-' + idx);
+  var st   = document.getElementById('qstatus-' + idx);
+  if (item) item.className = 'queue-item ' + state;
+  if (st)   { st.className = 'q-status ' + state; st.textContent = label; }
+}
+
+// ── Options ───────────────────────────────────────────────────────────────────
+function checkReady() {
+  var d = document.getElementById('endDate').value;
+  document.getElementById('genBtn').disabled = !(fileQueue.length && d) || isRunning;
+}
+function setStatus(msg, type) {
+  var el = document.getElementById('statusBox');
+  el.textContent = msg; el.className = 'status show ' + type;
+}
+function toggleMsg() {
+  doMsg = !doMsg;
+  document.getElementById('chipMsg').classList.toggle('on', doMsg);
+  document.getElementById('dotMsg').textContent = doMsg ? '✓' : '';
+  document.getElementById('msgField').classList.toggle('show', doMsg);
+}
+function toggleBlock() {
+  doBlock = !doBlock;
+  document.getElementById('chipBlock').classList.toggle('on', doBlock);
+  document.getElementById('dotBlock').textContent = doBlock ? '✓' : '';
+}
+function setDest(mode) {
+  destMode = mode;
+  document.getElementById('destLocal').classList.toggle('on', mode === 'local');
+  document.getElementById('dotDestLocal').textContent = mode === 'local' ? '✓' : '';
+  document.getElementById('destDrive').classList.toggle('on', mode === 'drive');
+  document.getElementById('dotDestDrive').textContent = mode === 'drive' ? '✓' : '';
+  document.getElementById('folderRow').classList.toggle('show', mode === 'drive');
+}
+function setProgress(done, total) {
+  var wrap = document.getElementById('progressWrap');
+  wrap.classList.add('show');
+  document.getElementById('progressFill').style.width = (total ? Math.round(done/total*100) : 0) + '%';
+  document.getElementById('progressCount').textContent = done + ' / ' + total;
+  document.getElementById('progressLabel').textContent =
+    done === total ? 'Complete!' : 'Processing file ' + (done+1) + ' of ' + total + '...';
+}
+
+// ── UTF-8 → Base64 ────────────────────────────────────────────────────────────
+function toB64(str) {
+  var bytes = new TextEncoder().encode(str), bin = '';
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+// ── Build obfuscated code ─────────────────────────────────────────────────────
+function buildCode(dateStr, block, msg, msgText) {
+  var sm = msgText.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\n');
+  var bp = block ? 'var _n=function(){return false;};var _i={Initialize:_n,Terminate:_n,GetValue:_n,SetValue:_n,Commit:_n,GetLastError:function(){return"0";},GetErrorString:function(){return"";},GetDiagnostic:function(){return"";},LMSInitialize:_n,LMSTerminate:_n,LMSGetValue:_n,LMSSetValue:_n,LMSCommit:_n,LMSGetLastError:function(){return"0";},LMSGetErrorString:function(){return"";},LMSGetDiagnostic:function(){return"";}};try{window.API=_i;}catch(e){}try{window.API_1484_11=_i;}catch(e){}' : '';
+  var mp = msg ? 'var _o=document.createElement("div");_o.style.cssText="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.93);z-index:999999;display:flex;align-items:center;justify-content:center;font-family:sans-serif;";_o.innerHTML="<div style=\'background:#1a1a2e;border:2px solid #ff4444;border-radius:12px;padding:40px;max-width:460px;text-align:center;color:#fff;\'><h2 style=\'color:#ff4444;margin-bottom:12px;\'>Course Expired</h2><p style=\'color:#ccc;line-height:1.6;\'>' + sm + '</p></div>";if(document.body){document.body.appendChild(_o);}else{document.addEventListener("DOMContentLoaded",function(){document.body.appendChild(_o);});}' : '';
+  var raw = '(function(){var _e=new Date("'+dateStr+'T23:59:59");if(new Date()>_e){'+bp+mp+'}})();';
+  var b64 = toB64(raw);
+  var mid = Math.floor(b64.length/2);
+  var v1='_'+Math.random().toString(36).slice(2,8), v2='_'+Math.random().toString(36).slice(2,8), v3='_'+Math.random().toString(36).slice(2,8);
+  var dec='function _u(s){var b=atob(s),r="",i=0,c;while(i<b.length){c=b.charCodeAt(i);if(c<128){r+=String.fromCharCode(c);i++;}else if((c>>5)===6){r+=String.fromCharCode(((c&31)<<6)|(b.charCodeAt(i+1)&63));i+=2;}else{r+=String.fromCharCode(((c&15)<<12)|((b.charCodeAt(i+1)&63)<<6)|(b.charCodeAt(i+2)&63));i+=3;}}return r;}';
+  return dec+'\nvar '+v1+'="'+b64.slice(0,mid)+'",'+v2+'="'+b64.slice(mid)+'",'+v3+'='+v1+'+'+v2+';eval(_u('+v3+'));';
+}
+
+// ── Inject expiry into zip ────────────────────────────────────────────────────
+async function injectExpiry(zipData, code) {
+  var zip = await JSZip.loadAsync(zipData);
+  var userJsPath = null;
+  zip.forEach(function(p){ if(p.toLowerCase().endsWith('user.js')) userJsPath=p; });
+  if (!userJsPath) {
+    var folder='';
+    zip.forEach(function(p){
+      if(p.toLowerCase().endsWith('.js')&&!p.includes('__MACOSX')){
+        var pts=p.split('/'); if(pts.length>1) folder=pts.slice(0,-1).join('/')+'/';
+      }
+    });
+    userJsPath=folder+'user.js';
+  }
+  var existing = zip.files[userJsPath] ? await zip.files[userJsPath].async('string') : '';
+  zip.file(userJsPath, '/* SCORM Expiry Lock */\n'+code+'\n/* END */\n\n'+existing);
+  var htmlPaths=[];
+  zip.forEach(function(p){ if((p.endsWith('.html')||p.endsWith('.htm'))&&!p.includes('__MACOSX')) htmlPaths.push(p); });
+  var jsFilename=userJsPath.split('/').pop();
+  for(var i=0;i<htmlPaths.length;i++){
+    var html=await zip.files[htmlPaths[i]].async('string');
+    if(!html.includes('user.js')){
+      var tag='<script src="'+jsFilename+'"><\/script>';
+      if(html.includes('</head>')) html=html.replace('</head>','  '+tag+'\n</head>');
+      else if(html.includes('</body>')) html=html.replace('</body>','  '+tag+'\n</body>');
+      else html+='\n'+tag;
+      zip.file(htmlPaths[i],html);
+    }
+  }
+  return await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+}
+
+// ── Fetch file from Drive ─────────────────────────────────────────────────────
+async function fetchDriveFile(driveId) {
+  var resp = await fetch('https://www.googleapis.com/drive/v3/files/'+driveId+'?alt=media', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  });
+  if (!resp.ok) throw new Error('Failed to download from Drive: ' + resp.status);
+  return await resp.arrayBuffer();
+}
+
+// ── Upload blob to Drive ──────────────────────────────────────────────────────
+async function uploadToDrive(blob, filename) {
+  var folderId = driveFolder ? driveFolder.id : null;
+  var metadata = { name: filename, mimeType: 'application/zip' };
+  if (folderId) metadata.parents = [folderId];
+  var form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+  form.append('file', blob);
+  var resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken },
+    body: form
+  });
+  if (!resp.ok) {
+    var err = await resp.json();
+    throw new Error('Drive upload failed: ' + (err.error && err.error.message || resp.status));
+  }
+  return await resp.json();
+}
+
+// ── Main generate loop ────────────────────────────────────────────────────────
+async function generate() {
+  if (!fileQueue.length || isRunning) return;
+  var dateVal = document.getElementById('endDate').value;
+  if (!dateVal) return;
+  if (destMode === 'drive' && !accessToken) {
+    setStatus('Please sign in to Google to save files to Drive.', 'err'); return;
+  }
+  isRunning = true;
+  document.getElementById('genBtn').disabled = true;
+  document.getElementById('genBtn').textContent = '⏳ Processing...';
+
+  var msgText = document.getElementById('expiryMsg').value.trim() || 'This course has expired. Please contact your administrator.';
+  var code    = buildCode(dateVal, doBlock, doMsg, msgText);
+  var total   = fileQueue.length, done = 0, failed = 0, results = [];
+
+  setProgress(0, total);
+  setStatus('Starting batch...', 'info');
+
+  for (var i = 0; i < total; i++) {
+    var f = fileQueue[i];
+    setItemStatus(i, 'processing', 'processing...');
+    setStatus('Processing ' + (i+1) + ' of ' + total + ': ' + f.name, 'info');
+
+    try {
+      // 1. Get zip data
+      var zipData;
+      if (f.source === 'local') {
+        zipData = await f.file.arrayBuffer();
+      } else {
+        setItemStatus(i, 'processing', 'downloading...');
+        zipData = await fetchDriveFile(f.driveId);
+      }
+
+      // 2. Inject expiry
+      setItemStatus(i, 'processing', 'injecting...');
+      var outBlob = await injectExpiry(zipData, code);
+      var outName = f.name.replace(/\.zip$/i,'') + '_expires_' + dateVal.replace(/-/g,'') + '.zip';
+
+      // 3. Save
+      if (destMode === 'local') {
+        var url = URL.createObjectURL(outBlob);
+        var a   = document.createElement('a');
+        a.href = url; a.download = outName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 8000);
+        results.push('✓ ' + outName + ' → downloaded');
+      } else {
+        setItemStatus(i, 'processing', 'uploading...');
+        var uploaded = await uploadToDrive(outBlob, outName);
+        var where = driveFolder ? driveFolder.name : 'My Drive (root)';
+        results.push('✓ ' + outName + ' → saved to ' + where);
+      }
+
+      setItemStatus(i, 'done', '✓ done');
+      done++;
+    } catch(err) {
+      setItemStatus(i, 'failed', '✗ failed');
+      results.push('✗ ' + f.name + ' — ' + err.message);
+      failed++;
+      console.error(err);
+    }
+
+    setProgress(i+1, total);
+    if (i < total-1) await new Promise(function(r){ setTimeout(r, 700); });
+  }
+
+  var dest    = destMode === 'drive' ? (driveFolder ? 'Google Drive / ' + driveFolder.name : 'Google Drive (root)') : 'local computer';
+  var summary = 'Batch complete!\n\nExpiry: ' + dateVal + '\nDestination: ' + dest + '\n\n' + results.join('\n');
+  setStatus(summary, failed === total ? 'err' : 'ok');
+  isRunning = false;
+  document.getElementById('genBtn').textContent = '⚙ Process & Save All Files';
+  checkReady();
+}
+</script>
+</body>
+</html>
