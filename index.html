@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v2.7.1 -->
+<!-- v3.3.0 -->
 <title>Change SCORM Expiry</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -509,95 +509,66 @@
 
   .hidden { display: none !important; }
 
-  /* ── Google Drive Integration ─────────────────────────── */
+  /* ── Google Drive Integration ───────────────────────────── */
   .auth-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    flex-wrap: wrap; gap: 10px;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 20px; margin-bottom: 20px;
+    display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:10px;background:var(--surface2);
+    border:1px solid var(--border);border-radius:12px;
+    padding:14px 20px;margin-bottom:16px;
   }
-  .auth-info { display: flex; align-items: center; gap: 12px; }
-  .auth-avatar {
-    width: 34px; height: 34px; border-radius: 50%;
-    background: var(--border); display: flex; align-items: center;
-    justify-content: center; font-size: 16px; overflow: hidden; flex-shrink: 0;
-  }
-  .auth-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .auth-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .auth-email { font-size: 11px; color: var(--muted); margin-top: 1px; }
-  .auth-btn {
-    padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer;
-    font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.05em;
-    font-weight: 500; transition: all .2s; white-space: nowrap;
-  }
-  .btn-signin { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
-  .btn-signin:hover { opacity: .85; }
-  .btn-signout { background: rgba(255,106,106,.1); border: 1px solid rgba(255,106,106,.3); color: var(--error); }
-  .btn-signout:hover { background: rgba(255,106,106,.2); }
-
-  .source-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
-  .src-tab {
-    flex: 1; padding: 10px 12px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--surface2);
-    cursor: pointer; text-align: center; font-size: 12px;
-    transition: all .2s; user-select: none; color: var(--muted);
-  }
-  .src-tab.active { border-color: var(--accent); background: rgba(124,106,255,.08); color: var(--accent); }
-  .src-tab-icon { font-size: 20px; display: block; margin-bottom: 4px; }
-
-  .drive-panel {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 12px; padding: 24px; text-align: center;
-  }
-  .drive-panel p { color: var(--muted); font-size: 12px; line-height: 1.7; margin-bottom: 16px; }
-  .btn-picker {
-    padding: 10px 24px; background: linear-gradient(135deg, #1a73e8, #0d47a1);
-    border: none; border-radius: 8px; color: #fff; cursor: pointer;
-    font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.04em;
-    transition: all .2s;
-  }
-  .btn-picker:hover:not(:disabled) { opacity: .85; transform: translateY(-1px); }
-  .btn-picker:disabled { opacity: .35; cursor: not-allowed; }
-
-  .dest-section { margin-top: 20px; }
-  .dest-label {
-    font-size: 11px; color: var(--muted); text-transform: uppercase;
-    letter-spacing: 0.08em; margin-bottom: 10px; display: block;
-  }
-  .dest-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
-  .dest-tab {
-    flex: 1; min-width: 140px; padding: 10px 14px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--surface2);
-    cursor: pointer; font-size: 12px; transition: all .2s;
-    user-select: none; color: var(--muted); display: flex; align-items: center; gap: 8px;
-  }
-  .dest-tab.active { border-color: var(--accent2); background: rgba(255,106,155,.07); color: var(--accent2); }
-  .dest-dot {
-    width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 8px; flex-shrink: 0; transition: all .2s;
-  }
-  .dest-tab.active .dest-dot { background: var(--accent2); border-color: var(--accent2); color: #fff; }
-
-  .folder-row {
-    margin-top: 12px; display: none; align-items: center; gap: 10px; flex-wrap: wrap;
-  }
-  .folder-row.show { display: flex; }
-  .folder-display {
-    flex: 1; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 9px 14px; font-size: 12px; color: var(--muted);
-    min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .folder-display.selected { color: var(--text); }
-  .btn-folder {
-    padding: 9px 16px; background: rgba(124,106,255,.1);
-    border: 1px solid rgba(124,106,255,.3); color: var(--accent);
-    border-radius: 8px; cursor: pointer; font-family: 'DM Mono', monospace;
-    font-size: 11px; white-space: nowrap; transition: background .2s;
-  }
-  .btn-folder:hover { background: rgba(124,106,255,.2); }
-
-  .file-meta-drive { color: #6a9fff; }
+  .auth-info{display:flex;align-items:center;gap:12px;}
+  .auth-avatar{width:34px;height:34px;border-radius:50%;background:var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;overflow:hidden;flex-shrink:0;}
+  .auth-avatar img{width:100%;height:100%;object-fit:cover;}
+  .auth-name{font-size:13px;font-weight:600;color:var(--text);}
+  .auth-email{font-size:11px;color:var(--muted);margin-top:1px;}
+  .auth-btn{padding:8px 18px;border-radius:8px;border:none;cursor:pointer;
+    font-family:'DM Mono',monospace;font-size:11px;font-weight:500;
+    transition:all .2s;white-space:nowrap;}
+  .btn-signin{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+  .btn-signin:hover{opacity:.85;}
+  .btn-signout{background:rgba(255,106,106,.1);border:1px solid rgba(255,106,106,.3);color:var(--error);}
+  .btn-signout:hover{background:rgba(255,106,106,.2);}
+  .source-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .src-tab{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+    background:var(--surface2);cursor:pointer;text-align:center;font-size:12px;
+    transition:all .2s;user-select:none;color:var(--muted);}
+  .src-tab.active{border-color:var(--accent);background:rgba(124,106,255,.08);color:var(--accent);}
+  .src-tab-icon{font-size:20px;display:block;margin-bottom:4px;}
+  .drive-panel{background:var(--surface2);border:1px solid var(--border);
+    border-radius:12px;padding:24px;text-align:center;}
+  .drive-panel p{color:var(--muted);font-size:12px;line-height:1.7;margin-bottom:16px;}
+  .btn-picker{padding:10px 24px;background:linear-gradient(135deg,#1a73e8,#0d47a1);
+    border:none;border-radius:8px;color:#fff;cursor:pointer;
+    font-family:'DM Mono',monospace;font-size:12px;transition:all .2s;}
+  .btn-picker:hover:not(:disabled){opacity:.85;transform:translateY(-1px);}
+  .btn-picker:disabled{opacity:.35;cursor:not-allowed;}
+  .dest-section{margin-top:20px;}
+  .dest-label{font-size:11px;color:var(--muted);text-transform:uppercase;
+    letter-spacing:0.08em;margin-bottom:10px;display:block;}
+  .dest-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+  .dest-tab{flex:1;min-width:140px;padding:10px 14px;border-radius:10px;
+    border:1px solid var(--border);background:var(--surface2);cursor:pointer;
+    font-size:12px;transition:all .2s;user-select:none;color:var(--muted);
+    display:flex;align-items:center;gap:8px;}
+  .dest-tab.active{border-color:var(--accent2);background:rgba(255,106,155,.07);color:var(--accent2);}
+  .dest-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:8px;flex-shrink:0;transition:all .2s;}
+  .dest-tab.active .dest-dot{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+  .folder-row{margin-top:12px;display:none;align-items:center;gap:10px;flex-wrap:wrap;}
+  .folder-row.show{display:flex;}
+  .folder-display{flex:1;background:var(--surface2);border:1px solid var(--border);
+    border-radius:8px;padding:9px 14px;font-size:12px;color:var(--muted);
+    min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .folder-display.selected{color:var(--text);}
+  .btn-folder{padding:9px 16px;background:rgba(124,106,255,.1);
+    border:1px solid rgba(124,106,255,.3);color:var(--accent);border-radius:8px;
+    cursor:pointer;font-family:'DM Mono',monospace;font-size:11px;
+    white-space:nowrap;transition:background .2s;}
+  .btn-folder:hover{background:rgba(124,106,255,.2);}
+  .file-meta-drive{color:#6a9fff;}
 
 </style>
 </head>
@@ -628,7 +599,7 @@
           <div class="auth-avatar" id="authAvatar">👤</div>
           <div>
             <div class="auth-name" id="authName">Not signed in</div>
-            <div class="auth-email" id="authEmail">Sign in to upload from Google Drive</div>
+            <div class="auth-email" id="authEmail">Sign in to select files from Google Drive</div>
           </div>
         </div>
         <button class="auth-btn btn-signin" id="authBtn" onclick="handleAuth()">Sign in with Google</button>
@@ -657,12 +628,12 @@
       <!-- Drive panel -->
       <div id="panelDrive" style="display:none;">
         <div class="drive-panel">
-          <p>Sign in with Google above, then open the Drive picker to select your SCORM .zip files. You can browse into folders before selecting.</p>
+          <p>Sign in with Google above, then open the Drive picker to browse your folders and select SCORM .zip files.</p>
           <button class="btn-picker" id="pickerBtn" onclick="openPicker()" disabled>📂 &nbsp;Open Google Drive Picker</button>
         </div>
       </div>
 
-      <!-- File List (shared) -->
+      <!-- Shared file list -->
       <div id="fileList" class="file-list" style="margin-top: 16px;"></div>
     </div>
 
@@ -740,7 +711,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:10px;left:16px;font-size:11px;color:#ffffff;font-family:monospace;z-index:9999;background:#333;padding:2px 6px;border-radius:4px;">v2.7.1</div>
+<div style="position:fixed;bottom:10px;left:16px;font-size:11px;color:#ffffff;font-family:monospace;z-index:9999;background:#333;padding:2px 6px;border-radius:4px;">v3.3.0</div>
 
 <script>
 // ─── State ─────────────────────────────────────────────────────────────────
@@ -786,14 +757,14 @@ function renderFile(f) {
   const el = document.createElement('div');
   el.className = 'file-item';
   el.id = 'file-' + f.id;
-  const sourceLabel = f.driveId
+  const sourceMeta = f.driveId
     ? `<span class="file-meta-drive">☁️ Drive${f.folder ? ' / ' + f.folder : ''}</span> · ${formatSize(f.size)}`
     : `Local · ${formatSize(f.size)}`;
   el.innerHTML = `
     <div class="file-icon">📦</div>
     <div class="file-info">
       <div class="file-name">${f.name}</div>
-      <div class="file-meta">${sourceLabel}</div>
+      <div class="file-meta">${sourceMeta}</div>
     </div>
     <span class="file-status status-ready" id="status-${f.id}">Ready</span>
     <button class="remove-btn" onclick="removeFile('${f.id}')">✕</button>
@@ -947,57 +918,54 @@ function extractEncodedString(scriptContent) {
 }
 
 // ─── SCORM Processing ────────────────────────────────────────────────────────
-// ─── Format 2: obfuscator.io style (encoded date in plain array) ────────────
-function processObfuscatorIoStyle(userJs, newDateStr) {
-  const dateRegex = /'([A-Za-z]+\\x20\d{1,2},\\x20\d{4}\\x20\d{2}:\d{2}:\d{2})'/g;
-  const matches = [...userJs.matchAll(dateRegex)];
-  if (matches.length === 0) return { newJs: userJs, count: 0 };
-  const newEncoded = "'" + newDateStr.replace(/ /g, '\\x20') + "'";
-  const newJs = userJs.replace(dateRegex, newEncoded);
-  return { newJs, count: matches.length };
+
+// ─── Strip all existing expiry logic ─────────────────────────────────────────
+function stripAllExpiryLogic(js) {
+  // Use brace-counting to find each ScriptN's true body, remove entirely if it contains expiry logic
+  const scriptNames = [...js.matchAll(/window\.(Script\d+) = function\(\)/g)].map(m => m[1]);
+  for (const name of scriptNames) {
+    const openPattern = new RegExp(`window\\.${name} = function\\(\\)\\r?\\n\\{`);
+    const openMatch = openPattern.exec(js);
+    if (!openMatch) continue;
+    let depth = 1, i = openMatch.index + openMatch[0].length;
+    while (i < js.length && depth > 0) {
+      if (js[i] === '{') depth++;
+      else if (js[i] === '}') depth--;
+      i++;
+    }
+    const body = js.substring(openMatch.index + openMatch[0].length, i - 1);
+    if (/expiryDate|courseExpired|_\$_[a-f0-9]+=\(function|_0x[a-f0-9]+=_0x/.test(body)) {
+      js = js.substring(0, openMatch.index) + js.substring(i);
+    }
+  }
+
+  // Format 4: plain-text currentDate/expiryDate block outside ScriptN
+  js = js.replace(/[\r\n]+[ \t]*(var|let|const)?\s*\w*[Cc]urrent[Dd]ate\s*=\s*new Date\s*\(\s*\)\s*;[\s\S]*?player\.SetVar\s*\([^)]+\)\s*;?/g, '');
+  js = js.replace(/[\r\n]*(var|let|const)?\s*\w*[Ee]xpiry[Dd]ate\s*=\s*new Date\s*\([^)]+\)\s*;[\s\S]*?player\.SetVar\s*\([^)]+\)\s*;?/g, '');
+  js = js.replace(/[\r\n]+[ \t]*(var|let|const)\s+\w*[Cc]urrent[Dd]ate\s*=\s*new Date\s*\(\s*\)\s*;/g, '');
+  js = js.replace(/[\r\n]+[ \t]*(var|let|const)\s+\w*[Ee]xpiry\w*\s*=[^;\n]+;/g, '');
+
+  // Our previously injected block
+  js = js.replace(/[\r\n]+;?\(function\(_,__,___,____\)\{[\s\S]*?\}\(\)\);?[\r\n]*/g, '\r\n');
+
+  // Clean up excess blank lines
+  js = js.replace(/(\r?\n){3,}/g, '\r\n\r\n');
+
+  return js;
 }
 
-// ─── Format 3: Injection — no expiry JS present, add it ─────────────────────
-function hasExpiryLogic(userJs) {
-  // Must have actual expiry logic — not just the boilerplate var declarations.
-  // Look for: obfuscated blocks, date-like strings, SetVar( calls, courseExpired, or our own injected block.
-  const hasObfuscatedBlock = /\(function\([^)]+\)\{[\s\S]*?\}\)\s*\("[^"]+"\s*,\s*\d+\s*\)/.test(userJs);
-  const hasObfuscatorIoDate = /'[A-Za-z]+\\x20\d{1,2},\\x20\d{4}\\x20\d{2}:\d{2}:\d{2}'/.test(userJs);
-  const hasSetVarCall = /setVar\s*\(|SetVar\s*\(/.test(userJs);
-  const hasCourseExpired = /courseExpired/.test(userJs);
-  const hasCxBlock = hasPreviousInjection(userJs);
-  return hasObfuscatedBlock || hasObfuscatorIoDate || hasSetVarCall || hasCourseExpired || hasCxBlock;
-}
-
-// Detects a previously injected Format 3 block by its unique fingerprint
-function hasPreviousInjection(userJs) {
-  return /\(function\(_,__,___,____\)/.test(userJs);
-}
-
-// Strips the previously injected block and re-injects with new date
-function stripAndReinject(userJs, newDateStr) {
-  const stripped = userJs.replace(/[\r\n]+;?\(function\(_,__,___,____\)\{[\s\S]*?\}\(\)\);?[\r\n]*/g, '\r\n');
-  const base = stripped !== userJs ? stripped : userJs;
-  return buildInjectedUserJs(base.trimEnd(), newDateStr);
-}
-
+// ─── Build and inject our obfuscated expiry block ────────────────────────────
 function buildInjectedUserJs(existingUserJs, newDateStr) {
-  // Expiry = midnight IST at the END of the selected date
-  // i.e. course is accessible all day on expiry date, expires when the day ends in IST
-  // End of day IST = 23:59:59 IST = 18:29:59 UTC same day
-  // We use 18:30 UTC same day as the cutoff (= exactly midnight IST going into next day)
-  // Parse date components directly to avoid browser local-time interpretation of new Date()
+  // Parse date components directly — avoids browser local-time issues with new Date()
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   const datePart = newDateStr.replace(/(\w+ \d{1,2}, \d{4}).*/, '$1');
   const parts = datePart.match(/^(\w+)\s+(\d{1,2}),\s*(\d{4})$/);
   const year = parseInt(parts[3]);
-  const month = months.indexOf(parts[1]); // 0-based
+  const month = months.indexOf(parts[1]);
   const day = parseInt(parts[2]);
+  // Expiry = end of day IST = 18:30 UTC same calendar day (midnight IST going into next day)
   const ts = Date.UTC(year, month, day, 18, 30, 0, 0);
 
-  // All strings are stored as char-code arrays to avoid readable keywords
-  // "This course has expired"  -> encoded below
-  // "__cx_node"                -> element id (opaque)
   function toCharCodes(str) {
     return JSON.stringify(Array.from(str).map(c => c.charCodeAt(0)));
   }
@@ -1014,36 +982,6 @@ function buildInjectedUserJs(existingUserJs, newDateStr) {
   return existingUserJs.trimEnd() + '\r\n' + injectedBlock;
 }
 
-// ─── Format 4: Plain-text expiry JS — detect and replace with obfuscated ────
-function hasPlainTextExpiry(userJs) {
-  // Matches patterns like: new Date("Month DD, YYYY ...") used alongside SetVar/courseExpired/expiry
-  return /new Date\s*\(\s*["'][A-Za-z]+ \d{1,2},\s*\d{4}/.test(userJs) &&
-         /SetVar|courseExpired|expiry/i.test(userJs);
-}
-
-function replacePlainTextExpiry(userJs, newDateStr) {
-  // Remove the entire plain expiry block: from the currentDate line through player.SetVar(...)
-  let stripped = userJs.replace(
-    /[\r\n]+[ \t]*(var|let|const)?\s*\w*[Cc]urrent[Dd]ate\s*=\s*new Date\s*\(\s*\)\s*;[\s\S]*?player\.SetVar\s*\([^)]+\)\s*;?/,
-    ''
-  );
-
-  // Fallback: if above didn't match, try matching from expiryDate declaration
-  if (stripped === userJs) {
-    stripped = userJs.replace(
-      /[\r\n]*(var|let|const)?\s*\w*[Ee]xpiry[Dd]ate\s*=\s*new Date\s*\([^)]+\)\s*;[\s\S]*?player\.SetVar\s*\([^)]+\)\s*;?/,
-      ''
-    );
-  }
-
-  // Also remove any leftover standalone currentDate or expiry var lines
-  stripped = stripped
-    .replace(/[\r\n]+[ \t]*(var|let|const)\s+\w*[Cc]urrent[Dd]ate\s*=\s*new Date\s*\(\s*\)\s*;/g, '')
-    .replace(/[\r\n]+[ \t]*(var|let|const)\s+\w*[Ee]xpiry\w*\s*=[^;\n]+;/g, '');
-
-  return buildInjectedUserJs(stripped.trimEnd(), newDateStr);
-}
-
 async function processScorm(arrayBuffer, newDateStr, fileName) {
   const zip = await JSZip.loadAsync(arrayBuffer);
 
@@ -1056,77 +994,13 @@ async function processScorm(arrayBuffer, newDateStr, fileName) {
   if (!userJsPath) throw new Error('user.js not found in zip');
 
   let userJs = await zip.file(userJsPath).async('string');
-  let replacedCount = 0;
-  let newUserJs = userJs;
-  let mode = 'update'; // 'update' | 'inject' | 'reinject' | 'replace-plain'
 
-  // ── ALWAYS update any Format 1 obfuscated blocks present ───────────────────
-  // These exist as window.ScriptN functions and must all have matching dates.
-  // We run this first on the original JS, then apply other format handling on top.
-  function updateFormat1Blocks(js) {
-    const blockRegex = /\(function\([^)]+\)\{[\s\S]*?\}\)\s*\("[^"]+"\s*,\s*\d+\s*\)/g;
-    const blocks = [...js.matchAll(blockRegex)];
-    const seen = new Set();
-    let count = 0;
-    for (const block of blocks) {
-      const fullBlock = block[0];
-      const extracted = extractEncodedString(fullBlock);
-      if (!extracted) continue;
-      if (seen.has(extracted.encoded)) continue;
-      const params = detectAlgoParams(fullBlock);
-      if (!params) continue;
-      const { param1, mod1, param2, mod2, totalMod } = params;
-      const { encoded, key } = extracted;
-      const decoded = runObfuscatorDecode(encoded, key, param1, param2, mod1, mod2, totalMod);
-      if (!decoded || decoded.length < 3) continue;
-      if (!/\w+ \d{1,2}, \d{4}/.test(decoded[0])) continue;
-      const targetStr = [newDateStr, decoded[1], decoded[2], decoded[3], decoded[4]].join('%');
-      const newEncoded = runObfuscatorEncode(targetStr, key, param1, param2, mod1, mod2, totalMod);
-      const escapedOld = encoded.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const re = new RegExp(escapedOld, 'g');
-      const before = js;
-      js = js.replace(re, newEncoded);
-      count += (before.match(re) || []).length;
-      seen.add(extracted.encoded);
-    }
-    return { js, count };
-  }
-
-  // Run Format 1 updater on all paths
-  const f1Result = updateFormat1Blocks(newUserJs);
-  newUserJs = f1Result.js;
-  replacedCount += f1Result.count;
-
-  // Run Format 2 updater on all paths (always, like Format 1)
-  const f2Result = processObfuscatorIoStyle(newUserJs, newDateStr);
-  if (f2Result.count > 0) {
-    newUserJs = f2Result.newJs;
-    replacedCount += f2Result.count;
-  }
-
-  // ── DETECT PRIMARY FORMAT and handle ───────────────────────────────────────
-
-  if (hasPreviousInjection(userJs)) {
-    // Format 3b: Previously injected by this tool — strip old block, inject fresh one
-    newUserJs = stripAndReinject(newUserJs, newDateStr);
-    replacedCount++;
-    mode = replacedCount > 1 ? 'reinject' : 'reinject';
-  } else if (hasPlainTextExpiry(userJs)) {
-    // Format 4: Plain readable JS expiry block — strip it, replace with obfuscated injection
-    newUserJs = replacePlainTextExpiry(newUserJs, newDateStr);
-    replacedCount++;
-    mode = 'replace-plain';
-  } else if (!hasExpiryLogic(userJs)) {
-    // Format 3: No expiry logic at all — inject from scratch
-    newUserJs = buildInjectedUserJs(newUserJs, newDateStr);
-    replacedCount++;
-    mode = 'inject';
-  } else if (f1Result.count === 0 && f2Result.count === 0) {
-    // No Format 1 blocks were found either — truly unrecognised
-    throw new Error('No recognised obfuscation format found in user.js');
-  }
-
-  if (replacedCount === 0) throw new Error('No date strings were replaced — format may be unrecognised');
+  // ── Unified approach: strip ALL existing expiry logic, then inject fresh ────
+  const stripped = stripAllExpiryLogic(userJs);
+  const newUserJs = buildInjectedUserJs(stripped.trimEnd(), newDateStr);
+  const mode = /\(function\(_,__,___,____\)/.test(userJs) ? 'reinject'
+             : (/courseExpired|expiryDate|\\x20\d{4}|_\$_[a-f0-9]+=\(function/.test(userJs) ? 'replaced'
+             : 'inject');
 
   // Update zip
   zip.file(userJsPath, newUserJs);
@@ -1137,7 +1011,7 @@ async function processScorm(arrayBuffer, newDateStr, fileName) {
     compressionOptions: { level: 6 }
   });
 
-  return { blob: newZipBlob, replacedCount, mode };
+  return { blob: newZipBlob, mode };
 }
 
 // ─── Main Process ────────────────────────────────────────────────────────────
@@ -1179,14 +1053,13 @@ async function processAll() {
         arrayBuffer = await file.fileObj.arrayBuffer();
       }
 
-      const { blob, replacedCount, mode } = await processScorm(arrayBuffer, newDateStr, file.name);
-
-      const modeLabel = mode === 'inject' ? '🆕 Expiry JS injected' : mode === 'reinject' ? '🔄 Expiry date updated (re-injected)' : mode === 'replace-plain' ? '🔒 Plain JS replaced with obfuscated' : `${replacedCount} date(s) updated`;
+      const { blob, mode } = await processScorm(arrayBuffer, newDateStr, file.name);
+      const modeLabel = mode === 'inject' ? '🆕 Expiry JS injected' : mode === 'reinject' ? '🔄 Expiry date updated' : '🔒 Expiry JS replaced & secured';
 
       if (destMode === 'drive') {
         setFileStatus(file.id, 'processing', 'Uploading…');
-        const uploaded = await uploadToDrive(blob, file.name);
-        const where = driveFolder ? driveFolder.name : 'My Drive';
+        await uploadToDrive(blob, file.name);
+        const where = driveFolder ? driveFolder.name : 'My Drive (root)';
         setFileStatus(file.id, 'done', '✓ Saved');
         log(`✓ ${file.name} — ${modeLabel} → saved to ${where}`, 'ok');
       } else {
@@ -1256,29 +1129,27 @@ updateSummary();
 // Watch date input
 document.getElementById('expiryDate').addEventListener('change', updateSummary);
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // GOOGLE DRIVE INTEGRATION
-// ═══════════════════════════════════════════════════════════
-const CLIENT_ID  = '620787797788-se4mkgbsmondqn9unjt3pdmvaer2q75s.apps.googleusercontent.com';
-const SCOPES     = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
+// ═══════════════════════════════════════════════════════════════
+const CLIENT_ID = '620787797788-se4mkgbsmondqn9unjt3pdmvaer2q75s.apps.googleusercontent.com';
+const SCOPES    = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly';
 
-let accessToken  = null;
-let userProfile  = null;
-let tokenClient  = null;
-let destMode     = 'local';
-let driveFolder  = null;
+let accessToken = null;
+let userProfile = null;
+let tokenClient = null;
+let destMode    = 'local';
+let driveFolder = null;
 
-// ── Auth ─────────────────────────────────────────────────────
-window.addEventListener('load', function() {
-  setTimeout(initGoogleAuth, 800);
-});
+// ── Auth ──────────────────────────────────────────────────────
+window.addEventListener('load', () => setTimeout(initGoogleAuth, 800));
 
 function initGoogleAuth() {
   if (typeof google === 'undefined' || !google.accounts) return;
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
-    callback: function(resp) {
+    callback: (resp) => {
       if (resp.error) { showToast('Sign-in failed: ' + resp.error, 'error'); return; }
       accessToken = resp.access_token;
       fetchUserProfile();
@@ -1297,11 +1168,7 @@ function fetchUserProfile() {
     headers: { Authorization: 'Bearer ' + accessToken }
   })
   .then(r => r.json())
-  .then(data => {
-    userProfile = data;
-    updateAuthUI(true);
-    document.getElementById('pickerBtn').disabled = false;
-  })
+  .then(data => { userProfile = data; updateAuthUI(true); document.getElementById('pickerBtn').disabled = false; })
   .catch(() => { updateAuthUI(true); document.getElementById('pickerBtn').disabled = false; });
 }
 
@@ -1318,7 +1185,7 @@ function updateAuthUI(signedIn) {
     btn.className     = 'auth-btn btn-signout';
   } else {
     name.textContent  = 'Not signed in';
-    email.textContent = 'Sign in to upload from Google Drive';
+    email.textContent = 'Sign in to select files from Google Drive';
     avatar.innerHTML  = '👤';
     btn.textContent   = 'Sign in with Google';
     btn.className     = 'auth-btn btn-signin';
@@ -1330,13 +1197,8 @@ function signOut() {
   if (accessToken) google.accounts.oauth2.revoke(accessToken);
   accessToken = null; userProfile = null;
   updateAuthUI(false);
-  // Remove drive files from queue
   for (let i = files.length - 1; i >= 0; i--) {
-    if (files[i].driveId) {
-      const el = document.getElementById('file-' + files[i].id);
-      if (el) el.remove();
-      files.splice(i, 1);
-    }
+    if (files[i].driveId) { const el = document.getElementById('file-' + files[i].id); if (el) el.remove(); files.splice(i,1); }
   }
   updateSummary();
 }
@@ -1349,7 +1211,7 @@ function switchTab(tab) {
   document.getElementById('panelDrive').style.display = tab === 'drive' ? '' : 'none';
 }
 
-// ── Picker ────────────────────────────────────────────────────
+// ── Picker API loader ─────────────────────────────────────────
 function loadPickerAPI(cb) {
   if (window.google && window.google.picker) { cb(); return; }
   const s = document.createElement('script');
@@ -1358,6 +1220,7 @@ function loadPickerAPI(cb) {
   document.head.appendChild(s);
 }
 
+// ── File picker (folder-navigable) ───────────────────────────
 function openPicker() {
   if (!accessToken) { showToast('Please sign in first', 'error'); return; }
   loadPickerAPI(() => {
@@ -1368,7 +1231,7 @@ function openPicker() {
     const picker = new google.picker.PickerBuilder()
       .addView(view)
       .setOAuthToken(accessToken)
-      .setTitle('Browse and select SCORM .zip files')
+      .setTitle('Browse folders and select SCORM .zip files')
       .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
       .setCallback(pickerCallback)
       .build();
@@ -1378,19 +1241,15 @@ function openPicker() {
 
 function pickerCallback(data) {
   if (data.action !== google.picker.Action.PICKED) return;
-  const docs = data.docs || [];
-  const promises = docs.map(doc => {
-    const exists = files.some(f => f.driveId === doc.id);
-    if (exists) return Promise.resolve();
+  const promises = (data.docs || []).map(doc => {
+    if (files.some(f => f.driveId === doc.id)) return Promise.resolve();
     return fetch(`https://www.googleapis.com/drive/v3/files/${doc.id}?fields=id,name,size,parents`, {
       headers: { Authorization: 'Bearer ' + accessToken }
     })
     .then(r => r.json())
     .then(meta => {
       const parentId = meta.parents && meta.parents[0];
-      if (!parentId) {
-        addDriveFile(doc, 'My Drive'); return;
-      }
+      if (!parentId) { addDriveFile(doc, 'My Drive'); return; }
       return fetch(`https://www.googleapis.com/drive/v3/files/${parentId}?fields=name`, {
         headers: { Authorization: 'Bearer ' + accessToken }
       })
@@ -1409,6 +1268,7 @@ function addDriveFile(doc, folderName) {
   renderFile(f);
 }
 
+// ── Folder picker (for save destination) ─────────────────────
 function openFolderPicker() {
   if (!accessToken) { showToast('Please sign in first', 'error'); return; }
   loadPickerAPI(() => {
@@ -1435,7 +1295,7 @@ function folderCallback(data) {
   disp.classList.add('selected');
 }
 
-// ── Destination ───────────────────────────────────────────────
+// ── Destination toggle ────────────────────────────────────────
 function setDest(mode) {
   destMode = mode;
   document.getElementById('destLocal').classList.toggle('active', mode === 'local');
@@ -1453,7 +1313,7 @@ async function fetchDriveFile(driveId) {
   return await resp.arrayBuffer();
 }
 
-// ── Upload to Drive ───────────────────────────────────────────
+// ── Upload file to Drive ──────────────────────────────────────
 async function uploadToDrive(blob, filename) {
   const metadata = { name: filename, mimeType: 'application/zip' };
   if (driveFolder) metadata.parents = [driveFolder.id];
@@ -1466,14 +1326,14 @@ async function uploadToDrive(blob, filename) {
     body: form
   });
   if (!resp.ok) {
-    const err = await resp.json();
+    const err = await resp.json().catch(() => ({}));
     throw new Error('Drive upload failed: ' + (err.error && err.error.message || resp.status));
   }
   return await resp.json();
 }
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // END GOOGLE DRIVE INTEGRATION
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 
 </script>
 </body>
