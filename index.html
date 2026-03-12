@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v3.3.0 -->
+<!-- v3.5.0 -->
 <title>Change SCORM Expiry</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -593,7 +593,7 @@
         </div>
       </div>
 
-      <!-- Auth bar -->
+      <!-- Google auth bar -->
       <div class="auth-bar" id="authBar">
         <div class="auth-info">
           <div class="auth-avatar" id="authAvatar">👤</div>
@@ -711,7 +711,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
-<div style="position:fixed;bottom:10px;left:16px;font-size:11px;color:#ffffff;font-family:monospace;z-index:9999;background:#333;padding:2px 6px;border-radius:4px;">v3.3.0</div>
+<div style="position:fixed;bottom:10px;left:16px;font-size:11px;color:#ffffff;font-family:monospace;z-index:9999;background:#333;padding:2px 6px;border-radius:4px;">v3.5.0</div>
 
 <script>
 // ─── State ─────────────────────────────────────────────────────────────────
@@ -757,14 +757,14 @@ function renderFile(f) {
   const el = document.createElement('div');
   el.className = 'file-item';
   el.id = 'file-' + f.id;
-  const sourceMeta = f.driveId
+  const srcMeta = f.driveId
     ? `<span class="file-meta-drive">☁️ Drive${f.folder ? ' / ' + f.folder : ''}</span> · ${formatSize(f.size)}`
     : `Local · ${formatSize(f.size)}`;
   el.innerHTML = `
     <div class="file-icon">📦</div>
     <div class="file-info">
       <div class="file-name">${f.name}</div>
-      <div class="file-meta">${sourceMeta}</div>
+      <div class="file-meta">${srcMeta}</div>
     </div>
     <span class="file-status status-ready" id="status-${f.id}">Ready</span>
     <button class="remove-btn" onclick="removeFile('${f.id}')">✕</button>
@@ -920,11 +920,85 @@ function extractEncodedString(scriptContent) {
 // ─── SCORM Processing ────────────────────────────────────────────────────────
 
 // ─── Strip all existing expiry logic ─────────────────────────────────────────
+// Detects and removes all known (and generic unknown) obfuscation styles:
+//
+//  Style A  – ScriptN with _$_ shuffle-obfuscation (Articulate Format 1)
+//  Style B  – ScriptN with _0x hex-var obfuscation  (Articulate Format 2/3)
+//  Style C  – ScriptN with any other named expiry keyword
+//  Style D  – ScriptN with generic obfuscation heuristic (char-code arrays,
+//              base64 blobs, heavy symbol density — catches unknown variants)
+//  Style E  – Plain-text currentDate/expiryDate block outside ScriptN (Format 4)
+//  Style F  – Garbled scrambled blob injected into InitUserScripts body (Format 5)
+//  Style G  – Our own previously injected (function(_,__,___,____){...})() block
+//  Style H  – Standalone IIFE expiry blocks at top-level (various wrappers)
+//  Style I  – _0x style arrays at top-level outside any ScriptN
+//  Style J  – courseExpired / expiryTimestamp / accessExpired bare variable blocks
+
+function isObfuscatedBody(body) {
+  // Heuristic: obfuscated code typically has many of these characteristics:
+
+  // 1. Named expiry keywords (definitive)
+  if (/expiryDate|courseExpired|accessExpired|expiryTimestamp|course_expired|expire_date/i.test(body)) return true;
+
+  // 2. Known obfuscator fingerprints
+  if (/_\$_[a-f0-9]{4,}/.test(body)) return true;         // _$_ shuffle style
+  if (/_0x[a-f0-9]+\s*=\s*_0x[a-f0-9]+/.test(body)) return true; // _0x chain style
+  if (/\\x[0-9a-f]{2}.*\\x[0-9a-f]{2}.*\\x[0-9a-f]{2}/i.test(body)) return true; // hex escapes
+  if (/\["\\x[0-9a-f]{2}/.test(body)) return true;         // ["\\x20..."] date arrays
+
+  // 3. Our own injection marker
+  if (/\(function\(_,__,___,____\)/.test(body)) return true;
+
+  // 4. Format 5 garbled blob markers
+  if (/iKn=old\[PVb\]/.test(body)) return true;
+  if (/VAW\(\d{3,5}\)/.test(body)) return true;
+  if (/var [A-Z][a-z][A-Z]='/.test(body)) return true;     // short random var names with string
+
+  // 5. Generic high-entropy heuristic
+  const lines = body.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length > 60) {
+      const semicolonDensity = (trimmed.match(/;/g) || []).length / trimmed.length;
+      const symbolDensity = (trimmed.match(/[;,\[\]{}()+\-*|&^%!?:=<>]/g) || []).length / trimmed.length;
+      // Catch dense obfuscation (many mixed symbols) OR high-semicolon obfuscation
+      if (semicolonDensity > 0.07 && symbolDensity > 0.18) return true;
+      // Catch Format 5 garbled blob: high symbol density with low-entropy non-alpha chars
+      if (symbolDensity > 0.28 && trimmed.length > 100) return true;
+      // Catch very high semicolon density alone
+      if (semicolonDensity > 0.12) return true;
+    }
+  }
+
+  // 6. char-code arrays with date-range numbers (1700000000+ timestamp range or month codes)
+  if (/\[(?:\d+,){5,}\d+\]/.test(body) && /\b(1[5-9]\d{8}|17\d{8})\b/.test(body)) return true;
+
+  // 7. Base64-like long string inside JS
+  if (/['"][A-Za-z0-9+/]{80,}={0,2}['"]/.test(body)) return true;
+
+  return false;
+}
+
 function stripAllExpiryLogic(js) {
-  // Use brace-counting to find each ScriptN's true body, remove entirely if it contains expiry logic
-  const scriptNames = [...js.matchAll(/window\.(Script\d+) = function\(\)/g)].map(m => m[1]);
+
+  // ── Style F: Garbled scrambled blob inside InitUserScripts body ──────────────
+  // Blob starts right after the standard player var declarations, before }; close
+  // Detect by known Format 5 markers anywhere in the whole file
+  if (/iKn=old\[PVb\]|VAW\(\d{3,5}\)|[a-z]{2,3}=[a-z]{2,3}\[PVb\]/.test(js)) {
+    js = js.replace(
+      /(window\.InitUserScripts\s*=\s*function\s*\(\s*\)\s*\r?\n\{(?:\r?\n(?:var \w[\w.]* = (?:GetPlayer\(\)|player\.\w+);))*\r?\n)([\s\S]*?)(\r?\n\};)/,
+      (match, header, body, close) => {
+        if (isObfuscatedBody(body)) return header + close;
+        return match;
+      }
+    );
+  }
+
+  // ── Styles A/B/C/D: ScriptN functions containing expiry/obfuscated logic ─────
+  // Brace-count to find exact body of each ScriptN, then test with isObfuscatedBody
+  const scriptNames = [...js.matchAll(/window\.(Script\d+)\s*=\s*function\s*\(\s*\)/g)].map(m => m[1]);
   for (const name of scriptNames) {
-    const openPattern = new RegExp(`window\\.${name} = function\\(\\)\\r?\\n\\{`);
+    const openPattern = new RegExp(`window\\.${name}\\s*=\\s*function\\s*\\(\\s*\\)\\s*\\r?\\n\\s*\\{`);
     const openMatch = openPattern.exec(js);
     if (!openMatch) continue;
     let depth = 1, i = openMatch.index + openMatch[0].length;
@@ -934,21 +1008,32 @@ function stripAllExpiryLogic(js) {
       i++;
     }
     const body = js.substring(openMatch.index + openMatch[0].length, i - 1);
-    if (/expiryDate|courseExpired|_\$_[a-f0-9]+=\(function|_0x[a-f0-9]+=_0x/.test(body)) {
+    if (isObfuscatedBody(body)) {
       js = js.substring(0, openMatch.index) + js.substring(i);
     }
   }
 
-  // Format 4: plain-text currentDate/expiryDate block outside ScriptN
+  // ── Style E: Plain-text currentDate / expiryDate blocks outside ScriptN ──────
   js = js.replace(/[\r\n]+[ \t]*(var|let|const)?\s*\w*[Cc]urrent[Dd]ate\s*=\s*new Date\s*\(\s*\)\s*;[\s\S]*?player\.SetVar\s*\([^)]+\)\s*;?/g, '');
   js = js.replace(/[\r\n]*(var|let|const)?\s*\w*[Ee]xpiry[Dd]ate\s*=\s*new Date\s*\([^)]+\)\s*;[\s\S]*?player\.SetVar\s*\([^)]+\)\s*;?/g, '');
   js = js.replace(/[\r\n]+[ \t]*(var|let|const)\s+\w*[Cc]urrent[Dd]ate\s*=\s*new Date\s*\(\s*\)\s*;/g, '');
   js = js.replace(/[\r\n]+[ \t]*(var|let|const)\s+\w*[Ee]xpiry\w*\s*=[^;\n]+;/g, '');
 
-  // Our previously injected block
+  // ── Style G: Our own previously injected block ────────────────────────────────
   js = js.replace(/[\r\n]+;?\(function\(_,__,___,____\)\{[\s\S]*?\}\(\)\);?[\r\n]*/g, '\r\n');
 
-  // Clean up excess blank lines
+  // ── Style H: Other standalone IIFE expiry wrappers at top level ──────────────
+  // e.g. !function(){...}() or (function(){var expiryDate...})()
+  js = js.replace(/[\r\n]+[!;]?\s*\(?\s*function\s*\(\s*\)\s*\{[^{}]*(?:expiryDate|courseExpired|accessExpired|expiryTimestamp)[^{}]*\}\s*\)\s*\(\s*\)\s*;?/g, '\r\n');
+
+  // ── Style I: Top-level _0x arrays and decoder functions ──────────────────────
+  // Matches: var _0xABCD = [...]; function _0xEFGH(...){...}
+  js = js.replace(/[\r\n]+(var\s+_0x[a-f0-9]+\s*=\s*\[[\s\S]*?\];[\r\n]+function\s+_0x[a-f0-9]+[\s\S]*?\}[\r\n]+)/g, '\r\n');
+
+  // ── Style J: courseExpired / expiryTimestamp bare variables anywhere ──────────
+  js = js.replace(/[\r\n]+(var|let|const)\s+(courseExpired|accessExpired|expiryTimestamp|course_expired)\s*=[^;]+;/g, '');
+
+  // ── Final cleanup ─────────────────────────────────────────────────────────────
   js = js.replace(/(\r?\n){3,}/g, '\r\n\r\n');
 
   return js;
@@ -1168,7 +1253,11 @@ function fetchUserProfile() {
     headers: { Authorization: 'Bearer ' + accessToken }
   })
   .then(r => r.json())
-  .then(data => { userProfile = data; updateAuthUI(true); document.getElementById('pickerBtn').disabled = false; })
+  .then(data => {
+    userProfile = data;
+    updateAuthUI(true);
+    document.getElementById('pickerBtn').disabled = false;
+  })
   .catch(() => { updateAuthUI(true); document.getElementById('pickerBtn').disabled = false; });
 }
 
@@ -1198,7 +1287,11 @@ function signOut() {
   accessToken = null; userProfile = null;
   updateAuthUI(false);
   for (let i = files.length - 1; i >= 0; i--) {
-    if (files[i].driveId) { const el = document.getElementById('file-' + files[i].id); if (el) el.remove(); files.splice(i,1); }
+    if (files[i].driveId) {
+      const el = document.getElementById('file-' + files[i].id);
+      if (el) el.remove();
+      files.splice(i, 1);
+    }
   }
   updateSummary();
 }
@@ -1268,7 +1361,7 @@ function addDriveFile(doc, folderName) {
   renderFile(f);
 }
 
-// ── Folder picker (for save destination) ─────────────────────
+// ── Folder picker (save destination) ─────────────────────────
 function openFolderPicker() {
   if (!accessToken) { showToast('Please sign in first', 'error'); return; }
   loadPickerAPI(() => {
